@@ -1,12 +1,15 @@
-# StimulusReflex Cheat Sheet
+# StimulusReflex Cheatsheet
 
 ## Calling Reflexes
 
 ### via Data Attributes
 
-`app/views/pages/index.html.erb`
+Easily trigger reflexes with the `data-reflex` attribute.
 
-```html
+{% tabs %}
+{% tab title="index.html.erb" %}
+
+```erb
 <a
   href="#"
   data-reflex="click->CounterReflex#increment"
@@ -16,7 +19,9 @@
 >
 ```
 
-`app/reflexes/counter_reflex.rb`
+{% endtab %}
+
+{% tab title="counter_reflex.rb" %}
 
 ```ruby
 class CounterReflex < StimulusReflex::Reflex
@@ -26,9 +31,15 @@ class CounterReflex < StimulusReflex::Reflex
 end
 ```
 
+{% endtab %}
+{% endtabs %}
+
 ### from Stimulus.js Controller
 
-`app/views/pages/index.html.erb`
+Stimulus.js controllers registered with StimulusReflex can use the `stimulate` method to trigger reflexes
+
+{% tabs %}
+{% tab title="index.html.erb" %}
 
 ```erb
 <a href="#"
@@ -37,7 +48,9 @@ end
 >Increment <%= @count %></a>
 ```
 
-`app/javascript/controllers/counter_controller.js`
+{% endtab %}
+
+{% tab title="counter_controller.js" %}
 
 ```javascript
 import { Controller } from "stimulus";
@@ -55,7 +68,9 @@ export default class extends Controller {
 }
 ```
 
-`app/reflexes/counter_reflex.rb`
+{% endtab %}
+
+{% tab title="counter_reflex.rb" %}
 
 ```ruby
 class CounterReflex < StimulusReflex::Reflex
@@ -63,14 +78,16 @@ class CounterReflex < StimulusReflex::Reflex
     session[:count] = session[:count].to_i + step
    end
 end
-
 ```
 
-`app/controllers/pages_controller.rb`
+{% endtab %}
+{% endtabs %}
 
 ## Morphs
 
-### Scoping Page Morphs with `data-reflex-root`
+### Reflex Root
+
+Instead of updating your entire page, you can specify exactly which parts of the DOM will be updated using the `data-reflex-root` attribute. [Full docs](http://docs.stimulusreflex.com/morph-modes#scoping-page-morphs)
 
 {% tabs %}
 {% tab title="index.html.erb" %}
@@ -112,6 +129,8 @@ Add data-reflex-permanent to any element in your DOM, and it will be left unchan
 {% endcode %}
 
 ### Selector Morphs
+
+Instead of refreshing the entire page, you can specify a portion of the page to update with `morph(selector, content)`
 
 {% tabs %}
 
@@ -166,13 +185,64 @@ end
 
 {% endcode %}
 
+## Lifecycle
+
+### Server-side Callbacks
+
+Reflex classes can use the following callbacks. [Full Docs](http://docs.stimulusreflex.com/lifecycle#server-side-reflex-callbacks)
+
+- `before_reflex`
+- `around_reflex`
+- `after_reflex`
+
+### Client-side Callbacks (Generic)
+
+StimulusReflex controllers automatically support five generic lifecycle callback methods.
+
+- `beforeReflex` prior to sending a request over the web socket
+- `reflexSuccess` after the server side Reflex succeeds and the DOM has been updated
+- `reflexError` whenever the server side Reflex raises an error
+- `reflexHalted` Reflex canceled with throw :abort in the before_reflex callback
+- `afterReflex` after both success and error
+
+### Client-side Callbacks (Custom)
+
+StimulusReflex controllers can define up to five custom lifecycle callback methods for each Reflex action. These methods use a naming convention based on the name of the Reflex. e.g. for the `add_one` reflex:
+
+- `beforeAddOne`
+- `addOneSuccess`
+- `addOneError`
+- `addOneHalted`
+- `afterAddOne`
+
+### Client-side Events
+
+If you need to know when a Reflex method is called, but you're working outside of the Stimulus controller that initiated it, you can subscribe to receive DOM events
+
+- `stimulus-reflex:before`
+- `stimulus-reflex:success`
+- `stimulus-reflex:error`
+- `stimulus-reflex:halted`
+- `stimulus-reflex:after`
+
+There are also events related to the StimulusReflex library setting up and connecting to ActionCable
+
+- `stimulus-reflex:connected`
+- `stimulus-reflex:disconnected`
+- `stimulus-reflex:rejected`
+- `stimulus-reflex:ready`
+
 ## Helpful Tips and Tricks
+
+### Forms
+
+If a Reflex is called on a form element - or a child of that form element - then the data for the whole form will be properly serialized and made available to the Reflex action method as the `params` accessor. [Read more](http://docs.stimulusreflex.com/working-with-forms)
 
 ### Inheriting data-attributes from parent elements
 
 You can use the `data-reflex-dataset="combined"` directive to scoop all data attributes up the DOM hierarchy and pass them as part of the Reflex payload.
 
-{% tabs }
+{% tabs %}
 {% tab title="app/views/comments/new.html.erb" %}
 
 ```markup
@@ -202,26 +272,16 @@ end
 
 ### Aborting a Reflex
 
+call `raise :abort` within a reflex method to cancel it.
+
 {% tab title="app/reflexes/comments_reflex.rb" %}
 
 ```ruby
 class CommentReflex < ApplicationReflex
   def create
-    puts element.dataset["post-id"]
-    puts element.dataset["category-id"]
+    raise :abort
   end
 end
 ```
 
 {% endtab %}
-
-[Aborting a Reflex](https://docs.stimulusreflex.com/reflexes#aborting-a-reflex)
-
-data-reflex-permanent
-
-Lots of good stuff here [Useful Patterns - StimulusReflex](https://docs.stimulusreflex.com/patterns)
-logging, I18n, spinners, autofocus
-
-## Callbacks
-
-server + client side

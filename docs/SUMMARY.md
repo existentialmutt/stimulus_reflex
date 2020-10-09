@@ -13,4 +13,4 @@
 * [Working with Events](events.md)
 * [Deployment](deployment.md)
 * [Troubleshooting](troubleshooting.md)
-
+* [Cheatsheet](cheatsheet.md)
