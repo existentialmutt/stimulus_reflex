@@ -4,12 +4,10 @@
 
 ### via Data Attributes
 
-Easily trigger reflexes with the `data-reflex` attribute.
-
-{% tabs %}
-{% tab title="index.html.erb" %}
+Trigger reflexes without writing any javascript with the `data-reflex` attribute.
 
 ```erb
+<!-- index.html.erb -->
 <a
   href="#"
   data-reflex="click->CounterReflex#increment"
@@ -19,11 +17,8 @@ Easily trigger reflexes with the `data-reflex` attribute.
 >
 ```
 
-{% endtab %}
-
-{% tab title="counter_reflex.rb" %}
-
 ```ruby
+# counter_reflex.rb
 class CounterReflex < StimulusReflex::Reflex
   def increment
     @count = element.dataset[:count].to_i + element.dataset[:step].to_i
@@ -31,48 +26,37 @@ class CounterReflex < StimulusReflex::Reflex
 end
 ```
 
-{% endtab %}
-{% endtabs %}
-
 ### from Stimulus.js Controller
 
 Stimulus.js controllers registered with StimulusReflex can use the `stimulate` method to trigger reflexes
 
-{% tabs %}
-{% tab title="index.html.erb" %}
-
 ```erb
+<!-- index.html.erb -->
 <a href="#"
   data-controller="counter"
   data-action="click->counter#increment"
 >Increment <%= @count %></a>
 ```
 
-{% endtab %}
-
-{% tab title="counter_controller.js" %}
-
 ```javascript
-import { Controller } from "stimulus";
-import StimulusReflex from "stimulus_reflex";
+// counter_controller.js
+import { Controller } from "stimulus"
+import StimulusReflex from "stimulus_reflex"
 
 export default class extends Controller {
   connect() {
-    StimulusReflex.register(this);
+    StimulusReflex.register(this)
   }
 
   increment(event) {
-    event.preventDefault();
-    this.stimulate("Counter#increment", 1);
+    event.preventDefault()
+    this.stimulate("Counter#increment", 1)
   }
 }
 ```
 
-{% endtab %}
-
-{% tab title="counter_reflex.rb" %}
-
 ```ruby
+# counter_reflex.rb
 class CounterReflex < StimulusReflex::Reflex
   def increment(step = 1)
     session[:count] = session[:count].to_i + step
@@ -80,83 +64,28 @@ class CounterReflex < StimulusReflex::Reflex
 end
 ```
 
-{% endtab %}
-{% endtabs %}
-
 ## Morphs
-
-### Reflex Root
-
-Instead of updating your entire page, you can specify exactly which parts of the DOM will be updated using the `data-reflex-root` attribute. [Full docs](http://docs.stimulusreflex.com/morph-modes#scoping-page-morphs)
-
-{% tabs %}
-{% tab title="index.html.erb" %}
-
-```text
-<div data-reflex-root="[forward],[backward]">
-  <input type="text" value="<%= @words %>" data-reflex="keyup->Example#words">
-  <div forward><%= @words %></div>
-  <div backward><%= @words&.reverse %></div>
-</div>
-```
-
-{% endtab %}
-
-{% tab title="example\_reflex.rb" %}
-
-```ruby
-  def words
-    @words = element[:value]
-  end
-```
-
-{% endtab %}
-{% endtabs %}
-
-### Permanent Elements
-
-Add data-reflex-permanent to any element in your DOM, and it will be left unchanged by full-page Reflex updates and morph calls that re-render partials.
-
-{% code title="index.html.erb" %}
-
-```markup
-<div data-reflex-permanent>
-  <iframe src="https://ghbtns.com/github-btn.html?user=hopsoft&repo=stimulus_reflex&type=star&count=true" frameborder="0" scrolling="0" class="ghbtn"></iframe>
-  <iframe src="https://ghbtns.com/github-btn.html?user=hopsoft&repo=stimulus_reflex&type=fork&count=true" frameborder="0" scrolling="0" class="ghbtn"></iframe>
-</div>
-```
-
-{% endcode %}
 
 ### Selector Morphs
 
 Instead of refreshing the entire page, you can specify a portion of the page to update with `morph(selector, content)`
 
-{% tabs %}
-
-{% tab title="show.html.erb" %}
-
-```markup
+```erb
+<!-- show.html.erb -->
 <header data-reflex="click->Example#change">
   <%= render partial: "path/to/foo", locals: {message: "Am I the medium or the massage?"} %>
 </header>
 ```
 
-{% endtab %}
-
-{% tab title="\_foo.html.erb" %}
-
-```markup
+```erb
+<!-- _foo.html.erb -->
 <div id="foo">
   <span class="spa"><%= message %></span>
 </div>
 ```
 
-{% endtab %}
-
-{% tab title="app/reflexes/example\_reflex.rb" %}
-
 ```ruby
+# example_reflex.rb
 class ExampleReflex < ApplicationReflex
   def change
     morph "#foo", "Your muscles... they are so tight."
@@ -164,17 +93,12 @@ class ExampleReflex < ApplicationReflex
 end
 ```
 
-{% endtab %}
-
-{% endtabs %}
-
 ### Nothing Morph
 
 Use `morph :nothing` in reflexes that do something on the server without updating the client.
 
-{% code title="app/reflexes/example\_reflex.rb" %}
-
 ```ruby
+# example_reflex.rb
 class ExampleReflex < ApplicationReflex
   def change
     LongRunningJob.perform_later
@@ -182,8 +106,6 @@ class ExampleReflex < ApplicationReflex
   end
 end
 ```
-
-{% endcode %}
 
 ## Lifecycle
 
@@ -199,21 +121,21 @@ Reflex classes can use the following callbacks. [Full Docs](http://docs.stimulus
 
 StimulusReflex controllers automatically support five generic lifecycle callback methods.
 
-- `beforeReflex` prior to sending a request over the web socket
-- `reflexSuccess` after the server side Reflex succeeds and the DOM has been updated
-- `reflexError` whenever the server side Reflex raises an error
-- `reflexHalted` Reflex canceled with throw :abort in the before_reflex callback
-- `afterReflex` after both success and error
+- `beforeReflex(element, reflex, noop, reflexId)` prior to sending a request over the web socket
+- `reflexSuccess(element, reflex, noop, reflexId)` after the server side Reflex succeeds and the DOM has been updated
+- `reflexError(element, reflex, error, reflexId)` whenever the server side Reflex raises an error
+- `reflexHalted(element, reflex, noop, reflexId)` reflex canceled with throw :abort in the before_reflex callback
+- `afterReflex(element, reflex, noop, reflexId)` after both success and error
 
 ### Client-side Callbacks (Custom)
 
 StimulusReflex controllers can define up to five custom lifecycle callback methods for each Reflex action. These methods use a naming convention based on the name of the Reflex. e.g. for the `add_one` reflex:
 
-- `beforeAddOne`
-- `addOneSuccess`
-- `addOneError`
-- `addOneHalted`
-- `afterAddOne`
+- `beforeAddOne(element, reflex, noop, reflexId)`
+- `addOneSuccess(element, reflex, noop, reflexId)`
+- `addOneError(element, reflex, error, reflexId)`
+- `addOneHalted(element, reflex, noop, reflexId)`
+- `afterAddOne(element, reflex, noop, reflexId)`
 
 ### Client-side Events
 
@@ -238,14 +160,16 @@ There are also events related to the StimulusReflex library setting up and conne
 
 If a Reflex is called on a form element - or a child of that form element - then the data for the whole form will be properly serialized and made available to the Reflex action method as the `params` accessor. [Read more](http://docs.stimulusreflex.com/working-with-forms)
 
+TODO Add Code
+
+### Promises
+
 ### Inheriting data-attributes from parent elements
 
 You can use the `data-reflex-dataset="combined"` directive to scoop all data attributes up the DOM hierarchy and pass them as part of the Reflex payload.
 
-{% tabs %}
-{% tab title="app/views/comments/new.html.erb" %}
-
-```markup
+```erb
+<!-- new.html.erb -->
 <div data-post-id="<%= @post.id %>">
   <div data-category-id="<%= @category.id %>">
     <button data-reflex="click->Comment#create" data-reflex-dataset="combined">Create</button>
@@ -253,11 +177,8 @@ You can use the `data-reflex-dataset="combined"` directive to scoop all data att
 </div>
 ```
 
-{% endtab %}
-
-{% tab title="app/reflexes/comments_reflex.rb" %}
-
 ```ruby
+# comment_reflex.rb
 class CommentReflex < ApplicationReflex
   def create
     puts element.dataset["post-id"]
@@ -266,22 +187,47 @@ class CommentReflex < ApplicationReflex
 end
 ```
 
-{% endtab %}
+### Reflex Root
 
-{% endtabs %}
+Instead of updating your entire page, you can specify exactly which parts of the DOM will be updated using the `data-reflex-root` attribute. [Full docs](http://docs.stimulusreflex.com/morph-modes#scoping-page-morphs)
+
+```text
+<!-- index.html.erb -->
+<div data-reflex-root="[forward],[backward]">
+  <input type="text" value="<%= @words %>" data-reflex="keyup->Example#words">
+  <div forward><%= @words %></div>
+  <div backward><%= @words&.reverse %></div>
+</div>
+```
+
+```ruby
+# example_reflex.rb
+  def words
+    @words = element[:value]
+  end
+```
+
+### Permanent Elements
+
+Add data-reflex-permanent to any element in your DOM, and it will be left unchanged by full-page Reflex updates and morph calls that re-render partials.
+
+```erb
+<!-- index.html.erb -->
+<div data-reflex-permanent>
+  <iframe src="https://ghbtns.com/github-btn.html?user=hopsoft&repo=stimulus_reflex&type=star&count=true" frameborder="0" scrolling="0" class="ghbtn"></iframe>
+  <iframe src="https://ghbtns.com/github-btn.html?user=hopsoft&repo=stimulus_reflex&type=fork&count=true" frameborder="0" scrolling="0" class="ghbtn"></iframe>
+</div>
+```
 
 ### Aborting a Reflex
 
 call `raise :abort` within a reflex method to cancel it.
 
-{% tab title="app/reflexes/comments_reflex.rb" %}
-
 ```ruby
+# comment_reflex.rb
 class CommentReflex < ApplicationReflex
   def create
     raise :abort
   end
 end
 ```
-
-{% endtab %}
